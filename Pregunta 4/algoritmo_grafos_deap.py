@@ -8,61 +8,94 @@ Original file is located at
 """
 
 import array
-import random
-import json
-
 import numpy
+import random
 
-from deap import algorithms
 from deap import base
 from deap import creator
 from deap import tools
-creator.create("FitnessMax",base.Fitness,weights=(1.0,))
-creator.create("Individual",array.array,typecode='i',fitness=creator.FitnessMax)
-toolbox=base.Toolbox()
-toolbox.register("attr_int",random.randint,0,4)
-toolbox.register("individual",tools.initRepeat,creator.Individual,toolbox.attr_int,6)
-toolbox.register("population",tools.initRepeat,list,toolbox.Individual)
-def score(individual):
-  s=0
-  t=False
-  if individual[0]==0:
-    s=s+100
-  for i in range(len(individual)):
+from deap import algorithms
+mat=numpy.zeros((5,5),int)
+ar=[7,9,8,20,10,4,11,11,5,17]
+ve=[0,1,2,3,4,5]
+c=0
+for i in range(5):
+  for j in range(i+1,5):
    
-    a=individual[len(individual)-i-1]
+    mat[i][j]=mat[j][i]=ar[c]
+    c=c+1
+print(mat)
+creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+creator.create("Individual", list, fitness=creator.FitnessMax)
+toolbox = base.Toolbox()
+# Attribute generator 
+toolbox.register("attr_bool", random.randint, 0, 4)
+# Structure initializers
+def llega_meta(ind):
+
+  
+  for i in range(len(ind)):
+    a=ind[len(ind)-i-1]
     if a==0:
       continue
     elif a==4:
-      s=s+100
-      break
+      return True
     else:
-      break
-  for i in range(len(individual)-1):
-    a=individual[len(individual)-i-1]
-    if a==0 and t==False:
-
-      continue
-    elif a==4:
-      t=True
-      r=mat[individual[i-1]][individual[i]]
-      s=s+r
+      return False
+def empieza_cero(ind):
+  if ind[0]==0:
+    return True
+  else:
+    return False
+def calcular_peso(ind):
+  s=0
+  meta=False
+  if llega_meta(ind):
+    for i in range(len(ind)-1,0,-1):
+      
+      if ind[i]==4 and meta==False:
+        meta=True
+      if meta:
+        s=s+mat[ind[i-1],ind[i]]
+      else:
+        continue
   return s
-toolbox.register("evaluate",score)
-toolbox.register("mate",tools.cxTwoPoint)
-toolbox.register("mutate",tools.mutFlipBit,indpb=0.05)
-toolbox.register("select",tools.selTournament,tournsize=3)
+def puntaje(individuo):
+  p=0
+  if llega_meta(individuo):
+      p=p+100
+  if empieza_cero(individuo):
+      p=p+100
+  
+    
+  p=p+(100-calcular_peso(individuo))
+    
+  return p,
+
+
+toolbox.register("individual", tools.initRepeat, creator.Individual, 
+    toolbox.attr_bool, 6)
+
+
+
+toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+def evalOneMax(individual):
+    return sum(individual),
+
+toolbox.register("evaluate", puntaje)
+toolbox.register("mate", tools.cxTwoPoint)
+toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+toolbox.register("select", tools.selTournament, tournsize=3)
 def main():
-  random.seed(64)
-  pop=toolbox.population(n=300)
-  hof=tools.HallOfFame(1)
-  stats =tools.Statistics(lambda ind:ind.fitness.values)
-  stats.register("Avg", numpy.mean)
-  stats.register("Std", numpy.std)
-  stats.register("Min", numpy.min)
-  stats.register("Max", numpy.max)
-  algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=100, stats=stats,
-                        halloffame=hof, verbose=True)
-  return pop,stats,hof
-if __name__ == "__main__":
-  main()
+    pop = toolbox.population(n=3000)
+
+    hof = tools.HallOfFame(1)
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", numpy.mean)
+    stats.register("std", numpy.std)
+    stats.register("min", numpy.min)
+    stats.register("max", numpy.max)
+
+    pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=40,stats=stats, halloffame=hof, verbose=True)
+    print(pop)
+main()
